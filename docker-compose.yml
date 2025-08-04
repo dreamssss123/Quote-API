@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  front_app:
+    build:
+      context: ./zzfrontend
+      dockerfile: Dockerfile.dev # Assumes you have a Dockerfile in your project root
+    ports:
+      - "3060:3060" # Exposes NestJS app on port 3000
+    # depends_on:
+    #   - nestjs_app # Ensures MySQL starts before the NestJS app
+    volumes:
+      - ./zzfrontend:/app # Mounts your local project directory into the container
+      # - /app/node_modules # Prevents node_modules from being overwritten by the volume mount
+    # restart: unless-stopped
+  
+  front_app2:
+    build:
+      context: ./zzfrontend2
+      dockerfile: Dockerfile.dev # Assumes you have a Dockerfile in your project root
+    ports:
+      - "3070:3070" # Exposes NestJS app on port 3000
+    # depends_on:
+    #   - nestjs_app # Ensures MySQL starts before the NestJS app
+    volumes:
+      - ./zzfrontend2:/app # Mounts your local project directory into the container
+      # - /app/node_modules # Prevents node_modules from being overwritten by the volume mount
+    # restart: unless-stopped
+
+
+  nestjs_app:
+    build:
+      context: ./zzbackend
+      dockerfile: dockerfile # Assumes you have a Dockerfile in your project root
+    ports:
+      - "5176:5176" # Exposes NestJS app on port 3000
+    depends_on:
+      - mysql_dbzz # Ensures MySQL starts before the NestJS app
+    environment:
+      DATABASE_HOST: mysql_dbzz # Hostname for the database connection (service name)
+      DATABASE_PORT: 3306
+      DATABASE_USER: user
+      DATABASE_PASSWORD: password
+      DATABASE_NAME: nestjs_db
+    volumes:
+      - ./zzbackend:/app # Mounts your local project directory into the container
+      - /app/node_modules # Prevents node_modules from being overwritten by the volume mount
+    restart: unless-stopped
+
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - 5001:80
+    environment:
+      - PMA_ARBITRARY=1
+      - MAX_EXECUTION_TIME=259200
+      - max_input_time=259200
+      - MEMORY_LIMIT=1000M
+      - upload_max_filesize=750M
+      - post_max_size=750M
+      - UPLOAD_LIMIT=750M
+    depends_on:
+      - mysql_dbzz
+
+  # MySQL Database Service
+  mysql_dbzz:
+    image: mysql:8.0 # Using MySQL 8.0 image
+    ports:
+      - "3306:3306" # Exposes MySQL on port 3306 (optional, for direct access from host)
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456 # Set a strong root password
+      MYSQL_DATABASE: nestjs_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: 123456
+    volumes:
+      - ./db:/var/lib/mysql # Persist MySQL data
+    restart: always
+
+volumes:
+  mysql_data: # Define the named volume for MySQL data persistence
